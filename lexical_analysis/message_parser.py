@@ -11,7 +11,6 @@ class Message:
 class MessageParser:
     def __init__(self):
         self._messages = []
-        # bare, lemm_stop, lemm, stop
 
     def init_sub_files(self, path):
         for dir_path, dir_names, file_names, in os.walk(path):
