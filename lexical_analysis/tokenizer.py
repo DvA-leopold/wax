@@ -1,9 +1,11 @@
+from typing import Dict
+
 import nltk
 
-from lexical_analysis import vocabulary_size, unknown_token
+from lexical_analysis import vocabulary_size, unknown_token, start_sentence, end_sentence
 
 
-def tokenize(text_for_tokenize):
+def tokenize(text_for_tokenize: [str]):
     return [nltk.word_tokenize(sentence) for sentence in nltk.sent_tokenize(text_for_tokenize)]
 
 
@@ -16,12 +18,14 @@ def word_frequency(tokenized_words, with_frequency=True):
         return [word_freq[0] for word_freq in word_dist.most_common(vocabulary_size - 1)]
 
 
-def replace_with_index(all_tokenized_sentences, word_index_dict):
+def replace_with_index(all_tokenized_sentences, word_index_dict) -> None:
     for i, sentence in enumerate(all_tokenized_sentences):
-        all_tokenized_sentences[i] = [word_index_dict.get(word, unknown_token) for word in sentence]
+        sentence_tokenized_list = [start_sentence] + [word_index_dict.get(word, unknown_token) for word in sentence]
+        sentence_tokenized_list.append(end_sentence)
+        all_tokenized_sentences[i] = sentence_tokenized_list
 
 
-def words_indexer(common_tokenized_vocabulary, reverse=False):
+def words_indexer(common_tokenized_vocabulary, reverse=False) -> Dict[str, int]:
     if reverse:
         return {index: word for index, word in enumerate(common_tokenized_vocabulary)}
     else:

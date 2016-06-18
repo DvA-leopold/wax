@@ -39,3 +39,6 @@ tmtagsHistory
 *.sublime-project
 *.sublime-workspace
 .bundle
+__pycache__/
+lexical_analysis/__pycache__/
+rnn/__pycache__/
