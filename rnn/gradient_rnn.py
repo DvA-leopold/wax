@@ -7,7 +7,7 @@ import theano.tensor as tensor
 
 class RNNTheano:
     def __init__(self, word_dim, hidden_dim=100, bptt_truncate=4):
-        print('init rnn')
+        print('start rnn init')
         self.word_dim = word_dim
         self.hidden_dim = hidden_dim
         self.bptt_truncate = bptt_truncate
@@ -17,41 +17,21 @@ class RNNTheano:
         self.U = theano.shared(name='U', value=U.astype(theano.config.floatX))
         self.V = theano.shared(name='V', value=V.astype(theano.config.floatX))
         self.W = theano.shared(name='W', value=W.astype(theano.config.floatX))
-        self.theano = {}
         self.__theano_build__()
-        print('init rnn finished')
+        print('finish rnn init')
 
     def __theano_build__(self):
         U, V, W = self.U, self.V, self.W
         x = tensor.ivector('x')
         y = tensor.ivector('y')
 
-        def forward_prop_step_gru(x_t, s_t1_prev):
-            # This is how we calculated the hidden state in a simple RNN. No longer!
-            # s_t = T.tanh(U[:,x_t] + W.dot(s_t1_prev))
-
-            # Get the word vector
-            x_e = E[:, x_t]
-
-            # GRU Layer
-            z_t1 = tensor.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[0])
-            r_t1 = tensor.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[1])
-            c_t1 = tensor.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
-            s_t1 = (tensor.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
-
-            # Final output calculation
-            # Theano's softmax returns a matrix with one row, we only need the row
-            o_t = tensor.nnet.softmax(V.dot(s_t1) + c)[0]
-
-            return [o_t, s_t1]
-
-        def forward_prop_step_rnn(x_t, s_t_prev, U, V, W):
+        def forward_prop_step(x_t, s_t_prev, U, V, W):
             s_t = tensor.tanh(U[:, x_t] + W.dot(s_t_prev))
             o_t = tensor.nnet.softmax(V.dot(s_t))
             return [o_t[0], s_t]
 
         [o, s], updates = theano.scan(
-            forward_prop_step_gru,
+            forward_prop_step,
             sequences=x,
             outputs_info=[None, dict(initial=tensor.zeros(self.hidden_dim))],
             non_sequences=[U, V, W],
@@ -59,7 +39,7 @@ class RNNTheano:
             strict=True)
 
         prediction = tensor.argmax(o, axis=1)
-        o_error = tensor.sum(theano.tensor.nnet.categorical_crossentropy(o, y))
+        o_error = tensor.sum(tensor.nnet.categorical_crossentropy(o, y))
 
         dU = tensor.grad(o_error, U)
         dV = tensor.grad(o_error, V)
