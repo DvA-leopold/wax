@@ -2,7 +2,7 @@ import os
 
 
 class Message:
-    def __init__(self, subject, msg, is_spam=False):
+    def __init__(self, subject, msg, is_spam=False):  # TODO remove this object, process tuple or list
         self.is_spam = is_spam
         self.msg_subject = subject
         self.msg_body = msg
