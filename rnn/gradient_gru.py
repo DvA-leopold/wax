@@ -40,37 +40,29 @@ class GRUTheano:
         x = tensor.ivector('x')
         y = tensor.ivector('y')
 
-        def forward_prop_step(x_t, s_t1_prev, s_t2_prev):
+        def forward_prop_step(x_t, s_t1_prev):
             # This is how we calculated the hidden state in a simple RNN. No longer!
             # s_t = T.tanh(U[:,x_t] + W.dot(s_t1_prev))
 
             # Word embedding layer
             x_e = E[:, x_t]
 
-            # GRU Layer 1
             z_t1 = tensor.nnet.hard_sigmoid(U[0].dot(x_e) + W[0].dot(s_t1_prev) + b[0])
             r_t1 = tensor.nnet.hard_sigmoid(U[1].dot(x_e) + W[1].dot(s_t1_prev) + b[1])
             c_t1 = tensor.tanh(U[2].dot(x_e) + W[2].dot(s_t1_prev * r_t1) + b[2])
             s_t1 = (tensor.ones_like(z_t1) - z_t1) * c_t1 + z_t1 * s_t1_prev
 
-            # GRU Layer 2
-            z_t2 = tensor.nnet.hard_sigmoid(U[3].dot(s_t1) + W[3].dot(s_t2_prev) + b[3])
-            r_t2 = tensor.nnet.hard_sigmoid(U[4].dot(s_t1) + W[4].dot(s_t2_prev) + b[4])
-            c_t2 = tensor.tanh(U[5].dot(s_t1) + W[5].dot(s_t2_prev * r_t2) + b[5])
-            s_t2 = (tensor.ones_like(z_t2) - z_t2) * c_t2 + z_t2 * s_t2_prev
-
             # Final output calculation
             # Theano's softmax returns a matrix with one row, we only need the row
-            o_t = tensor.nnet.softmax(V.dot(s_t2) + c)[0]
+            o_t = tensor.nnet.softmax(V.dot(s_t1) + c)[0]
 
-            return [o_t, s_t1, s_t2]
+            return [o_t, s_t1]
 
-        [o, s, s2], updates = theano.scan(
+        [o, s], updates = theano.scan(
             forward_prop_step,
             sequences=x,
             truncate_gradient=self.bptt_truncate,
             outputs_info=[None,
-                          dict(initial=tensor.zeros(self.hidden_dim)),
                           dict(initial=tensor.zeros(self.hidden_dim))])
 
         prediction = tensor.argmax(o, axis=1)
