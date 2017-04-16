@@ -7,7 +7,7 @@ import theano.tensor as tensor
 
 class RNNTheano:
     def __init__(self, word_dim, hidden_dim=100, bptt_truncate=4):
-        print('start rnn init')
+        print('start training init')
         self.word_dim = word_dim
         self.hidden_dim = hidden_dim
         self.bptt_truncate = bptt_truncate
@@ -18,7 +18,7 @@ class RNNTheano:
         self.V = theano.shared(name='V', value=V.astype(theano.config.floatX))
         self.W = theano.shared(name='W', value=W.astype(theano.config.floatX))
         self.__theano_build__()
-        print('finish rnn init')
+        print('finish training init')
 
     def __theano_build__(self):
         U, V, W = self.U, self.V, self.W

@@ -20,7 +20,7 @@ def train_with_sgd(model, X_train, Y_train, learning_rate=0.005, nepoch=100, eva
             if len(losses) > 1 and losses[-1][1] > losses[-2][1]:
                 learning_rate *= 0.5
                 print("Setting learning rate to %f" % learning_rate)
-                # save_model_parameters_theano("./data/rnn-theano-%d-%d-%s.npz" % (model.hidden_dim, model.word_dim, time), model)
+                # save_model_parameters_theano("./data/training-theano-%d-%d-%s.npz" % (model.hidden_dim, model.word_dim, time), model)
         for i in range(len(Y_train)):
             # for every sentence make sgd step
             model.sgd_step(X_train[i], Y_train[i], learning_rate)

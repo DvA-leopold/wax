@@ -1,36 +1,22 @@
-import itertools
+from math import sqrt
 
-from theano.gradient import np
+from keras.preprocessing import sequence
 
-from lexical_analysis import lingspam_public_bare, vocabulary_size
-from lexical_analysis.message_parser import MessageParser
-from lexical_analysis.tokenizer import tokenize, word_frequency, replace_with_index, words_indexer
-from rnn.gradient_theano import RNNTheano
-from rnn.gradient_numpy import RNNNumpy
-from rnn.sgd_train import train_with_sgd
+from lexical_analyzer import lingspam_public_bare
+from lexical_analyzer.message_parser import MessageParser
+from spam_analyzer import prepare_model
 
 if __name__ == '__main__':
-    message_parser = MessageParser()
-    message_parser.init_sub_files(lingspam_public_bare)
-    all_messages_in_string = message_parser.message_bodies_as_string()
+    message_parser = MessageParser(lingspam_public_bare, spam_msg_limit=200, clear_msg_limit=200)
+    samples, results = message_parser.index_by_message()
+    math_exp, dispersion = message_parser.calc_math(samples)
+    pad_seq_size = int(math_exp + sqrt(dispersion) * 2)
+    samples = sequence.pad_sequences(samples, pad_seq_size, padding='post', truncating='post')
 
-    tokenized_sentences_by_words = tokenize(all_messages_in_string)
-    common_vocabulary = word_frequency(itertools.chain(*tokenized_sentences_by_words), False)
-    word_index_map = words_indexer(common_vocabulary)
-    replace_with_index(tokenized_sentences_by_words, word_index_map)
+    print('math expectation: ', math_exp)
+    print('math deviation: ', sqrt(dispersion))
+    print('max msg len: ', message_parser.max_message_len)
 
-    X_train = np.asarray([sent[:-1] for sent in tokenized_sentences_by_words])
-    Y_train = np.asarray([sent[1:] for sent in tokenized_sentences_by_words])
-
-    np.random.seed(10)
-    # Train on a small subset of the data to see what happens
-    model = RNNTheano(vocabulary_size)
-    losses = train_with_sgd(model, X_train[:1000], Y_train[:1000], nepoch=100, evaluate_loss_after=1)
-
-    # model = RNNNumpy(vocabulary_size)
-    # print('Expected random loss: %f' % np.log(vocabulary_size))
-    # print('Actual loss: %f' % model.calculate_loss(X_train[:500], Y_train[:500]))
-
-    # for sentence in tokenized_sentences_by_words:
-    #     print(sentence)
-
+    prepared_model, history = prepare_model(samples, results, pad_seq_size)
+    scores = prepared_model.evaluate(samples, results, verbose=0)
+    print("Accuracy: {}%".format(scores[1] * 100))
