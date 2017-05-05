@@ -2,21 +2,51 @@ from math import sqrt
 
 from keras.preprocessing import sequence
 
-from lexical_analyzer import lingspam_public_bare
+from lexical_analyzer import lingspam_public_bare, lingspam_public_lemm
 from lexical_analyzer.message_parser import MessageParser
-from spam_analyzer import prepare_model
+from spam_analyzer import *
+from utils.math import math_expectation
+from utils.math import dispersion
 
 if __name__ == '__main__':
-    message_parser = MessageParser(lingspam_public_bare, spam_msg_limit=200, clear_msg_limit=200)
-    samples, results = message_parser.index_by_message()
-    math_exp, dispersion = message_parser.calc_math(samples)
-    pad_seq_size = int(math_exp + sqrt(dispersion) * 2)
-    samples = sequence.pad_sequences(samples, pad_seq_size, padding='post', truncating='post')
+    mp_train = MessageParser(lingspam_public_bare, spam_msg_limit=1000, clear_msg_limit=1000)
+    train_samples, train_result = mp_train.index_by_message()
 
-    print('math expectation: ', math_exp)
-    print('math deviation: ', sqrt(dispersion))
-    print('max msg len: ', message_parser.max_message_len)
+    mp_test = MessageParser(lingspam_public_lemm, spam_msg_limit=500, clear_msg_limit=500)
+    test_samples, test_results = mp_test.index_by_message()
 
-    prepared_model, history = prepare_model(samples, results, pad_seq_size)
-    scores = prepared_model.evaluate(samples, results, verbose=0)
-    print("Accuracy: {}%".format(scores[1] * 100))
+    math_exp_train, math_exp_test = math_expectation(train_samples), math_expectation(test_samples)
+    disp_train = dispersion(train_samples, math_exp_train)
+    disp_test = dispersion(test_samples, math_exp_test)
+
+    pad_train_seq = int(math_exp_train + sqrt(disp_train) * 2)
+    pad_test_seq = int(math_exp_test + sqrt(disp_test) * 2)
+    max_pad = max(pad_test_seq, pad_train_seq)
+
+    test_samples = sequence.pad_sequences(test_samples, max_pad, padding='post', truncating='post')
+    train_samples = sequence.pad_sequences(train_samples, max_pad, padding='post', truncating='post')
+
+    print('math expectation train-{}, res-{}: '.format(math_exp_train, math_exp_test))
+    print('math deviation train-{}, res-{}: '.format(sqrt(disp_train), sqrt(disp_test)))
+    print('max msg len test-{}, train-{}: '.format(mp_test.max_message_len, mp_train.max_message_len))
+
+    # print('-------------------------------------------------------------------------------')
+    # prepared_model, history = prepare_rnn_model(train_samples, train_result, max_pad)
+    # score, accuracy = prepared_model.evaluate(test_samples, test_results, verbose=0)
+    #
+    # print('metrics: ', prepared_model.metrics_names)
+    # print("Score: {}%, Accuracy: {}%".format(round(score * 100, 2), round(accuracy * 100, 2)))
+
+    print('-------------------------------------------------------------------------------')
+    prepared_model, history = prepare_lstm_model(train_samples, train_result, max_pad)
+    score, accuracy = prepared_model.evaluate(test_samples, test_results, verbose=0)
+
+    print('metrics: ', prepared_model.metrics_names)
+    print("Score: {}%, Accuracy: {}%".format(round(score * 100, 2), round(accuracy * 100, 2)))
+
+    # print('-------------------------------------------------------------------------------')
+    # prepared_model, history = prepare_gru_model(train_samples, train_result, max_pad)
+    # score, accuracy = prepared_model.evaluate(test_samples, test_results, verbose=0)
+    #
+    # print('metrics: ', prepared_model.metrics_names)
+    # print("Score: {}%, Accuracy: {}%".format(round(score * 100, 2), round(accuracy * 100, 2)))

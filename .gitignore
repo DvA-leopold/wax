@@ -42,3 +42,5 @@ tmtagsHistory
 __pycache__/
 lexical_analysis/__pycache__/
 rnn/__pycache__/
+logs/
+pics/
